@@ -28,6 +28,7 @@ time = { version = "0.3.36", default-features = false, optional = true, features
 ipnetwork = { version = "0.20", default-features = false, optional = true }
 mac_address = { version = "1.1", default-features = false, optional = true }
 pgvector = { version = "~0.4", default-features = false, optional = true }
+postgis = { version = "0.9.0", default-features = false, optional = true }
 
 [features]
 sqlx-mysql = ["sqlx/mysql"]
@@ -42,6 +43,7 @@ with-uuid = ["sqlx?/uuid", "sea-query/with-uuid", "uuid"]
 with-time = ["sqlx?/time", "sea-query/with-time", "time"]
 with-ipnetwork = ["sqlx?/ipnetwork", "sea-query/with-ipnetwork", "ipnetwork"]
 with-mac_address = ["sqlx?/mac_address", "sea-query/with-mac_address", "mac_address"]
+with-postgis = ["sqlx?/postgis", "postgis"]
 postgres-array = ["sea-query/postgres-array"]
 postgres-vector = ["sea-query/postgres-vector", "pgvector/sqlx"]
 runtime-async-std = ["sqlx?/runtime-async-std"]

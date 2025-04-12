@@ -1,5 +1,8 @@
 use std::ops::Deref;
 
+#[cfg(feature = "with-postgis")]
+use postgis::ewkb::{AsEwkbGeometry, EwkbWrite};
+
 use crate::*;
 
 const QUOTE: Quote = Quote(b'"', b'"');
@@ -1200,6 +1203,10 @@ pub trait QueryBuilder:
             Value::IpNetwork(Some(v)) => write!(s, "'{v}'").unwrap(),
             #[cfg(feature = "with-mac_address")]
             Value::MacAddress(Some(v)) => write!(s, "'{v}'").unwrap(),
+            #[cfg(feature = "with-postgis")]
+            Value::Geometry(Some(v)) => write!(s, "'{}'", v.as_ewkb().to_hex_ewkb()).unwrap(),
+            #[cfg(feature = "with-postgis")]
+            Value::Geometry(None) => write!(s, "'{}'", "NULL").unwrap(),
         };
         s
     }

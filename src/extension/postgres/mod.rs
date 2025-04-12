@@ -12,6 +12,8 @@ pub(crate) mod extension;
 pub(crate) mod func;
 pub(crate) mod interval;
 pub(crate) mod ltree;
+#[cfg(feature = "with-postgis")]
+pub(crate) mod postgis;
 pub(crate) mod select;
 pub(crate) mod types;
 

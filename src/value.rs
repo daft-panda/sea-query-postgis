@@ -31,6 +31,9 @@ use std::net::IpAddr;
 #[cfg(feature = "with-mac_address")]
 use mac_address::MacAddress;
 
+#[cfg(feature = "with-postgis")]
+use postgis::ewkb::Geometry;
+
 use crate::{ColumnType, CommonSqlQueryBuilder, QueryBuilder, StringLen};
 
 /// [`Value`] types variant for Postgres array
@@ -114,6 +117,10 @@ pub enum ArrayType {
     #[cfg(feature = "with-mac_address")]
     #[cfg_attr(docsrs, doc(cfg(feature = "with-mac_address")))]
     MacAddress,
+
+    #[cfg(feature = "with-postgis")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "with-postgis")))]
+    Geometry,
 }
 
 /// Value variants
@@ -213,6 +220,10 @@ pub enum Value {
     #[cfg(feature = "with-mac_address")]
     #[cfg_attr(docsrs, doc(cfg(feature = "with-mac_address")))]
     MacAddress(Option<Box<MacAddress>>),
+
+    #[cfg(feature = "with-postgis")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "with-postgis")))]
+    Geometry(Option<Box<Geometry>>),
 }
 
 impl std::fmt::Display for Value {
@@ -396,6 +407,10 @@ impl Value {
             #[cfg(feature = "with-mac_address")]
             #[cfg_attr(docsrs, doc(cfg(feature = "with-mac_address")))]
             Self::MacAddress(_) => Self::MacAddress(None),
+
+            #[cfg(feature = "with-postgis")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "with-postgis")))]
+            Self::Geometry(_) => Self::Geometry(None),
         }
     }
 }
@@ -846,6 +861,9 @@ mod with_mac_address {
 #[cfg(feature = "postgres-array")]
 #[cfg_attr(docsrs, doc(cfg(feature = "postgres-array")))]
 pub mod with_array {
+    #[cfg(feature = "with-postgis")]
+    use postgis::ewkb::{GeometryT, Point};
+
     use super::*;
     use crate::RcOrArc;
 
@@ -923,6 +941,9 @@ pub mod with_array {
 
     #[cfg(feature = "with-mac_address")]
     impl NotU8 for MacAddress {}
+
+    #[cfg(feature = "with-postgis")]
+    impl NotU8 for GeometryT<Point> {}
 
     impl<T> From<Vec<T>> for Value
     where
@@ -1315,6 +1336,20 @@ impl Value {
     }
 }
 
+#[cfg(feature = "with-postgis")]
+impl Value {
+    pub fn is_geometry(&self) -> bool {
+        matches!(self, Self::Geometry(_))
+    }
+
+    pub fn as_geometry(&self) -> Option<&Geometry> {
+        match self {
+            Self::Geometry(v) => box_to_opt_ref!(v),
+            _ => panic!("not Value::Geometry"),
+        }
+    }
+}
+
 impl IntoIterator for ValueTuple {
     type Item = Value;
     type IntoIter = std::vec::IntoIter<Self::Item>;
@@ -1574,6 +1609,10 @@ pub fn sea_value_to_json_value(value: &Value) -> Json {
         Value::IpNetwork(Some(_)) => CommonSqlQueryBuilder.value_to_string(value).into(),
         #[cfg(feature = "with-mac_address")]
         Value::MacAddress(Some(_)) => CommonSqlQueryBuilder.value_to_string(value).into(),
+        #[cfg(feature = "with-postgis")]
+        Value::Geometry(Some(_)) => CommonSqlQueryBuilder.value_to_string(value).into(),
+        #[cfg(feature = "with-postgis")]
+        Value::Geometry(None) => Json::Null,
     }
 }
 
@@ -2041,6 +2080,8 @@ mod tests {
 mod hashable_value {
     use super::*;
     use ordered_float::OrderedFloat;
+    #[cfg(feature = "with-postgis")]
+    use postgis::ewkb::{AsEwkbGeometry, EwkbWrite};
     use std::{
         hash::{Hash, Hasher},
         mem,
@@ -2188,6 +2229,12 @@ mod hashable_value {
 
                 #[cfg(feature = "with-mac_address")]
                 Value::MacAddress(mac_address) => mac_address.hash(state),
+
+                #[cfg(feature = "with-postgis")]
+                Value::Geometry(geo) => match geo {
+                    Some(geo) => geo.as_ewkb().to_hex_ewkb().hash(state),
+                    None => "null".hash(state),
+                },
             }
         }
     }

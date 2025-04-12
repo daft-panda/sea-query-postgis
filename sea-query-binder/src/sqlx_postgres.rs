@@ -6,6 +6,8 @@ use chrono::{DateTime, Local, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use ipnetwork::IpNetwork;
 #[cfg(feature = "with-mac_address")]
 use mac_address::MacAddress;
+#[cfg(feature = "with-postgis")]
+use postgis::ewkb::{GeometryT, Point};
 #[cfg(feature = "with-rust_decimal")]
 use rust_decimal::Decimal;
 #[cfg(feature = "with-json")]
@@ -128,6 +130,10 @@ impl sqlx::IntoArguments<'_, sqlx::postgres::Postgres> for SqlxValues {
                 #[cfg(feature = "with-mac_address")]
                 Value::MacAddress(mac) => {
                     let _ = args.add(mac.as_deref());
+                }
+                #[cfg(feature = "with-postgis")]
+                Value::Geometry(geo) => {
+                    let _ = args.add(geo.as_deref());
                 }
                 #[cfg(feature = "postgres-array")]
                 Value::Array(ty, v) => match ty {
@@ -311,6 +317,12 @@ impl sqlx::IntoArguments<'_, sqlx::postgres::Postgres> for SqlxValues {
                     ArrayType::MacAddress => {
                         let value: Option<Vec<MacAddress>> = Value::Array(ty, v)
                             .expect("This Value::Array should consist of Value::MacAddress");
+                        let _ = args.add(value);
+                    }
+                    #[cfg(feature = "with-postgis")]
+                    ArrayType::Geometry => {
+                        let value: Option<Vec<GeometryT<Point>>> = Value::Array(ty, v)
+                            .expect("This Value::Array should consist of Value::GeometryT<Point>");
                         let _ = args.add(value);
                     }
                 },
